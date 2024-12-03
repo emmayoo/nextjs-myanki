@@ -14,5 +14,8 @@ export default {
       },
     },
   },
-  plugins: [],
+  daisyui: {
+    themes: ["light", "dark", "cupcake"],
+  },
+  plugins: [require("@tailwindcss/forms"), require("daisyui")],
 } satisfies Config;
