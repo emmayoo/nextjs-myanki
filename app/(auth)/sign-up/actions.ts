@@ -3,12 +3,9 @@
 import bcrypt from "bcrypt";
 import db from "@/lib/db";
 import { typeToFlattenedError, z } from "zod";
-import {
-  PASSWORD_MIN_LENGTH,
-  PASSWORD_REGEX,
-  PASSWORD_REGEX_ERROR,
-} from "@/lib/constants";
+import { PASSWORD_REGEX, PASSWORD_REGEX_ERROR } from "@/lib/constants";
 import { redirect } from "next/navigation";
+import { saveSession } from "@/lib/session";
 
 const checkUsernameUnique = async (username: string) => {
   const user = await db.user.findUnique({
@@ -47,11 +44,11 @@ const formSchema = z
       .refine(checkUsernameUnique, "이미 사용 중인 이름입니다."),
     email: z
       .string()
-      .email()
+      .email("이메일을 올바르게 입력하세요.")
       .refine(checkEmailUnique, "이미 사용 중인 이메일입니다"),
     password: z
       .string()
-      .min(PASSWORD_MIN_LENGTH)
+      .min(0, "비밀번호를 입력해주세요.")
       .regex(PASSWORD_REGEX, PASSWORD_REGEX_ERROR),
     confirmPassword: z.string(),
   })
@@ -60,10 +57,11 @@ const formSchema = z
     path: ["confirmPassword"],
   });
 
-type Form = z.infer<typeof formSchema>;
+type FormType = z.infer<typeof formSchema>;
 
-export type StateType = {
-  fieldErrors: typeToFlattenedError<Form>["fieldErrors"];
+type StateType = {
+  data?: FormType;
+  fieldErrors: typeToFlattenedError<FormType>["fieldErrors"];
 };
 
 export const createUser = async (
@@ -79,7 +77,10 @@ export const createUser = async (
 
   const result = await formSchema.spa(data);
   if (!result.success) {
-    return result.error.flatten();
+    return {
+      data: data as FormType,
+      fieldErrors: result.error.flatten().fieldErrors,
+    };
   }
 
   const hashedPassword = await bcrypt.hash(result.data.password, 12);
@@ -95,10 +96,10 @@ export const createUser = async (
     },
   });
 
-  // TODO. Error
   if (!user) {
-    throw new Error();
+    throw new Error("user 생성 오류");
   }
 
-  redirect("/profile");
+  await saveSession(user.id);
+  redirect("/home");
 };

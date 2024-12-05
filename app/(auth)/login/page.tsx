@@ -1,20 +1,32 @@
-import SocialLogin from "@/components/auth/social-login";
+"use client";
+
 import Link from "next/link";
+import { useActionState } from "react";
+
+import SocialLogin from "@/components/auth/social-login";
+import Button from "@/components/Button";
+import Input from "@/components/Input";
+import { logIn } from "./actions";
+
 export default function Login() {
+  const [state, action] = useActionState(logIn, null);
+
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100">
       <div className="card w-96 bg-white shadow-xl">
         <div className="card-body">
           <h2 className="text-2xl font-bold text-center">로그인</h2>
-          <form>
+          <form action={action}>
             <div className="form-control mb-4">
               <label className="label">
                 <span className="label-text">이메일</span>
               </label>
-              <input
+              <Input
                 type="email"
+                name="email"
                 placeholder="이메일을 입력하세요"
-                className="input input-bordered"
+                defaultValue={state?.data?.email}
+                errors={state?.fieldErrors.email}
                 required
               />
             </div>
@@ -23,18 +35,17 @@ export default function Login() {
               <label className="label">
                 <span className="label-text">비밀번호</span>
               </label>
-              <input
+              <Input
                 type="password"
+                name="password"
                 placeholder="비밀번호를 입력하세요"
-                className="input input-bordered"
+                errors={state?.fieldErrors.password}
                 required
               />
             </div>
 
             <div className="form-control mt-6">
-              <button className="btn btn-primary w-full max-w-lg">
-                로그인
-              </button>
+              <Button text="로그인" />
             </div>
           </form>
 

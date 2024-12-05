@@ -1,9 +1,11 @@
 "use client";
 
+import Link from "next/link";
+import { useActionState } from "react";
+
 import SocialLogin from "@/components/auth/social-login";
 import Button from "@/components/Button";
 import Input from "@/components/Input";
-import React, { useActionState } from "react";
 import { createUser } from "./actions";
 
 export default function SignUp() {
@@ -23,6 +25,7 @@ export default function SignUp() {
                 type="text"
                 name="username"
                 placeholder="이름을 입력하세요"
+                defaultValue={state?.data?.username}
                 errors={state?.fieldErrors.username}
                 required
               />
@@ -36,6 +39,7 @@ export default function SignUp() {
                 type="email"
                 name="email"
                 placeholder="이메일을 입력하세요"
+                defaultValue={state?.data?.email}
                 errors={state?.fieldErrors.email}
                 required
               />
@@ -78,9 +82,9 @@ export default function SignUp() {
           <div className="text-center mt-4">
             <p className="text-sm">
               이미 계정이 있나요?{" "}
-              <a href="/login" className="text-primary hover:underline">
+              <Link href="/login" className="text-primary hover:underline">
                 로그인
-              </a>
+              </Link>
             </p>
           </div>
         </div>
