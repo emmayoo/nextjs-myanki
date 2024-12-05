@@ -1,7 +1,16 @@
 export default function SocialLogin() {
+  const handleGoogleRedirect = async () => {
+    const response = await fetch("/google/login");
+    const { url } = await response.json();
+    window.location.href = url;
+  };
+
   return (
     <div className="form-control">
-      <button className="btn btn-outline btn-primary w-full">
+      <button
+        className="btn btn-outline btn-primary w-full"
+        onClick={handleGoogleRedirect}
+      >
         <span className="mr-2">
           <svg
             xmlns="http://www.w3.org/2000/svg"

@@ -17,6 +17,7 @@ model User {
   password   String?
   phone      String?  @unique
   avatar     String?
+  google_id  String?  @unique
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 }
