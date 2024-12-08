@@ -21,3 +21,32 @@ model User {
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 }
+
+model Note {
+  id         Int       @id @default(autoincrement())
+  title      String
+  content    String
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  tags       Tag[]     @relation("NoteTags")
+  NoteTag    NoteTag[]
+}
+
+model Tag {
+  id         Int       @id @default(autoincrement())
+  tagname    String    @unique
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  notes      Note[]    @relation("NoteTags")
+  NoteTag    NoteTag[]
+}
+
+model NoteTag {
+  noteId Int
+  tagId  Int
+
+  note Note @relation(fields: [noteId], references: [id])
+  tag  Tag  @relation(fields: [tagId], references: [id])
+
+  @@id([noteId, tagId])
+}
