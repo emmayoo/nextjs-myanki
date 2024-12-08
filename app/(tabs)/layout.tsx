@@ -11,9 +11,7 @@ export default function TabsLayout({
       <div className="hidden lg:block">
         <Sidebar />
       </div>
-
-      {children}
-
+      <div className="w-full px-20 pt-20">{children}</div>
       <Footer />
     </div>
   );
