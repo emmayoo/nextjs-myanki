@@ -1,13 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Editor from "@/components/Editor";
+import { OutputData } from "@editorjs/editorjs";
+import { save } from "./actions";
 
 export default function NoteAdd() {
   const [tags, setTags] = useState([{ id: 1, name: "test1" }]);
   const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [highlightedIndex, setHighlightedIndex] = useState<number | null>(null);
+  const [content, setContent] = useState<OutputData>();
+  const title = useRef<HTMLInputElement>(null);
 
   const handleSelectTag = (tagId: number) => {
     if (selectedTagIds.includes(tagId)) {
@@ -45,7 +49,7 @@ export default function NoteAdd() {
       setHighlightedIndex((prev) =>
         prev === null ? 0 : Math.max(prev - 1, 0)
       );
-    } else if (e.key === "Enter" && highlightedIndex !== null) {
+    } else if (e.key === "Enter" && !!highlightedIndex) {
       const tagToAdd = filteredTags[highlightedIndex];
       handleSelectTag(tagToAdd.id);
       setInputValue("");
@@ -56,7 +60,17 @@ export default function NoteAdd() {
       } else {
         setInputValue("");
       }
+      setHighlightedIndex(null);
     }
+  };
+
+  const handleClick = async () => {
+    await save({
+      title: title.current?.value ?? "",
+      content: JSON.stringify(content),
+      tags,
+      selectedTagIds,
+    });
   };
 
   return (
@@ -122,17 +136,18 @@ export default function NoteAdd() {
         <input
           type="text"
           placeholder="제목"
+          ref={title}
           className="flex-1 px-3 py-2 border rounded-lg text-sm focus:ring focus:ring-blue-200"
           required
         />
         <div className="flex-1 bg-gray-400 relative">
           <div className="w-full mx-14">
-            <Editor />
+            <Editor setContent={setContent} />
           </div>
         </div>
       </div>
 
-      <button>추가하기</button>
+      <button onClick={handleClick}>추가</button>
     </div>
   );
 }
