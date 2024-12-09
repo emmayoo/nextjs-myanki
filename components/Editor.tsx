@@ -1,12 +1,52 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import EditorJS from "@editorjs/editorjs";
+import {
+  Dispatch,
+  memo,
+  SetStateAction,
+  useCallback,
+  useEffect,
+  useRef,
+} from "react";
 import Header from "@editorjs/header";
 import List from "@editorjs/list";
+import { Saver } from "@editorjs/editorjs/types/api";
+import { OutputData } from "@editorjs/editorjs";
 
-export default function Editor() {
-  const ejInstance = useRef<EditorJS>();
+type EditorJSType = {
+  destroy: () => void;
+  saver: Saver;
+};
+
+interface EditorProps {
+  setContent: Dispatch<SetStateAction<OutputData | undefined>>;
+}
+
+function Editor({ setContent }: EditorProps) {
+  const ejInstance = useRef<EditorJSType>();
+
+  const initEditor = useCallback(async () => {
+    const EditorJS = (await import("@editorjs/editorjs")).default;
+    // const EditorJS = dynamic(await () => import('@editorjs/editorjs'), {
+    //   ssr: false,
+    // })
+
+    const editor = new EditorJS({
+      holder: "editorjs",
+      tools: {
+        header: Header,
+        list: List,
+      },
+      autofocus: true,
+      onReady: () => {
+        ejInstance.current = editor;
+      },
+      onChange: async () => {
+        const content = await ejInstance.current?.saver.save();
+        setContent(content);
+      },
+    });
+  }, [setContent]);
 
   useEffect(() => {
     if (!ejInstance.current) {
@@ -17,31 +57,9 @@ export default function Editor() {
       ejInstance?.current?.destroy();
       ejInstance.current = undefined;
     };
-  }, []);
+  }, [initEditor]);
 
-  const initEditor = () => {
-    const editor = new EditorJS({
-      holder: "editorjs",
-      onReady: () => {
-        ejInstance.current = editor;
-      },
-      tools: {
-        header: Header,
-        list: List,
-      },
-      autofocus: true,
-    });
-  };
-
-  const handleClick = async () => {
-    const aa = await await ejInstance?.current?.saver.save();
-    console.log(aa);
-  };
-
-  return (
-    <div className="container">
-      <div id="editorjs"></div>
-      <button onClick={handleClick}>버튼</button>
-    </div>
-  );
+  return <div id="editorjs"></div>;
 }
+
+export default memo(Editor);
