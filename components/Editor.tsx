@@ -2,11 +2,11 @@
 
 import {
   Dispatch,
-  memo,
   SetStateAction,
   useCallback,
   useEffect,
   useRef,
+  useState,
 } from "react";
 import Header from "@editorjs/header";
 import List from "@editorjs/list";
@@ -24,12 +24,11 @@ interface EditorProps {
 
 function Editor({ setContent }: EditorProps) {
   const ejInstance = useRef<EditorJSType>();
+  const [isMounted, setMounted] = useState(false);
 
   const initEditor = useCallback(async () => {
+    if (!isMounted) return;
     const EditorJS = (await import("@editorjs/editorjs")).default;
-    // const EditorJS = dynamic(await () => import('@editorjs/editorjs'), {
-    //   ssr: false,
-    // })
 
     const editor = new EditorJS({
       holder: "editorjs",
@@ -37,7 +36,6 @@ function Editor({ setContent }: EditorProps) {
         header: Header,
         list: List,
       },
-      autofocus: true,
       onReady: () => {
         ejInstance.current = editor;
       },
@@ -46,7 +44,7 @@ function Editor({ setContent }: EditorProps) {
         setContent(content);
       },
     });
-  }, [setContent]);
+  }, [isMounted, setContent]);
 
   useEffect(() => {
     if (!ejInstance.current) {
@@ -59,7 +57,11 @@ function Editor({ setContent }: EditorProps) {
     };
   }, [initEditor]);
 
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   return <div id="editorjs"></div>;
 }
 
-export default memo(Editor);
+export default Editor;

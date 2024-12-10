@@ -1,47 +1,69 @@
 "use server";
 
 import db from "@/lib/db";
+import { Prisma, PrismaClient } from "@prisma/client";
+import { DefaultArgs } from "@prisma/client/runtime/library";
+
+export type TagType = { id: number; tagname: string };
 
 type SaveFnArgs = {
   title: string;
   content: string;
-  tags: { id: number; name: string }[];
-  selectedTagIds: number[];
+  selectedTags: TagType[];
 };
 
-const saveTag = async (name: string) =>
-  await db.tag.create({ data: { tagname: name }, select: { id: true } });
+type TxType = Omit<
+  PrismaClient<Prisma.PrismaClientOptions, never, DefaultArgs>,
+  "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends"
+>;
 
-const saveNoteTag = async (noteId: number, tagId: number) =>
-  await db.noteTag.create({ data: { noteId, tagId } });
+const saveTag = async (tx: TxType, tagname: string) =>
+  await tx.tag.create({ data: { tagname }, select: { id: true } });
 
-export const save = async ({
-  title,
-  content,
-  tags,
-  selectedTagIds,
-}: SaveFnArgs) => {
-  const note = await db.note.create({
-    data: {
-      title,
-      content,
+const saveNoteTag = async (tx: TxType, noteId: number, tagId: number) =>
+  await tx.noteTag.create({ data: { noteId, tagId } });
+
+export const save = async ({ title, content, selectedTags }: SaveFnArgs) => {
+  const { orgTags, newTags } = selectedTags.reduce(
+    (acc, t) => {
+      if (t.id < 0) acc["newTags"].push(t);
+      else acc["orgTags"].push(t);
+      return acc;
     },
-    select: {
-      id: true,
-    },
+    { orgTags: [], newTags: [] } as { [key in string]: TagType[] }
+  );
+
+  await db.$transaction(async (tx) => {
+    const note = await tx.note.create({
+      data: {
+        title,
+        content,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    const newTagIds = await Promise.all(
+      newTags.map((t) => saveTag(tx, t.tagname))
+    );
+
+    const allTags = [
+      ...orgTags.map((t) => t.id),
+      ...newTagIds.map((t) => t.id),
+    ];
+
+    await Promise.all(allTags.map((n) => saveNoteTag(tx, note.id, n)));
   });
 
-  if (!note) throw Error("노트 생성 중 오류. TODO");
+  await db.$disconnect();
+};
 
-  const newTagNames = tags
-    .filter((tag) => selectedTagIds.includes(tag.id) && tag.id < 0)
-    .map((t) => t.name);
-
-  const newTags = await Promise.all(newTagNames.map((n) => saveTag(n)));
-  const allTags = [
-    ...selectedTagIds.filter((i) => i > 0),
-    ...newTags.map((t) => t.id),
-  ];
-
-  await Promise.all(allTags.map((n) => saveNoteTag(note.id, n)));
+export const getTags = async () => {
+  return await db.tag.findMany({
+    select: {
+      id: true,
+      tagname: true,
+    },
+  });
 };
