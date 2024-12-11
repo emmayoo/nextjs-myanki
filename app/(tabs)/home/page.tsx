@@ -1,9 +1,41 @@
-import Editor from "@/components/Editor";
 import HomeContent from "@/components/tabs/HomeContent";
 import db from "@/lib/db";
+import { Prisma } from "@prisma/client";
+import { notFound } from "next/navigation";
+import { getSession } from "@/lib/session";
+
+const getNoteList = async () => {
+  const session = await getSession();
+  if (!session) return notFound();
+  const notes = await db.note.findMany({
+    where: {
+      userId: session.id!,
+    },
+
+    include: {
+      NoteTag: {
+        include: {
+          tag: true,
+        },
+      },
+    },
+  });
+  return notes;
+};
+
+export type NoteListType = Prisma.PromiseReturnType<typeof getNoteList>;
 
 export default async function Home() {
+  const notes = await getNoteList();
+
+  const tagIds = notes.flatMap((n) => n.noteTags.map((t) => t.tagId));
+
   const tags = await db.tag.findMany({
+    where: {
+      id: {
+        in: tagIds,
+      },
+    },
     select: {
       id: true,
       tagname: true,
@@ -12,14 +44,7 @@ export default async function Home() {
 
   return (
     <div>
-      <HomeContent
-        tags={[
-          { id: 1, tagname: "test1" },
-          { id: 2, tagname: "test2" },
-          { id: 3, tagname: "test3" },
-        ]}
-      />
-      <Editor />
+      <HomeContent tags={tags} notes={notes} />
     </div>
   );
 }

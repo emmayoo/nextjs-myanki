@@ -1,6 +1,7 @@
 "use server";
 
 import db from "@/lib/db";
+import { getSession } from "@/lib/session";
 import { Prisma, PrismaClient } from "@prisma/client";
 import { DefaultArgs } from "@prisma/client/runtime/library";
 
@@ -20,9 +21,6 @@ type TxType = Omit<
 const saveTag = async (tx: TxType, tagname: string) =>
   await tx.tag.create({ data: { tagname }, select: { id: true } });
 
-const saveNoteTag = async (tx: TxType, noteId: number, tagId: number) =>
-  await tx.noteTag.create({ data: { noteId, tagId } });
-
 export const save = async ({ title, content, selectedTags }: SaveFnArgs) => {
   const { orgTags, newTags } = selectedTags.reduce(
     (acc, t) => {
@@ -33,11 +31,14 @@ export const save = async ({ title, content, selectedTags }: SaveFnArgs) => {
     { orgTags: [], newTags: [] } as { [key in string]: TagType[] }
   );
 
+  const session = await getSession();
+
   await db.$transaction(async (tx) => {
     const note = await tx.note.create({
       data: {
         title,
         content,
+        userId: session.id!,
       },
       select: {
         id: true,
@@ -48,12 +49,14 @@ export const save = async ({ title, content, selectedTags }: SaveFnArgs) => {
       newTags.map((t) => saveTag(tx, t.tagname))
     );
 
-    const allTags = [
+    const allTagIds = [
       ...orgTags.map((t) => t.id),
       ...newTagIds.map((t) => t.id),
     ];
 
-    await Promise.all(allTags.map((n) => saveNoteTag(tx, note.id, n)));
+    await tx.noteTag.createMany({
+      data: allTagIds.map((id) => ({ noteId: note.id, tagId: id })),
+    });
   });
 
   await db.$disconnect();

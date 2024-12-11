@@ -1,34 +1,82 @@
-import db from "@/lib/db";
+import { useEffect, useState } from "react";
+import { NoteListType } from "@/app/(tabs)/home/page";
+import { formatDate } from "@/lib/utils";
 
 interface HomeListProps {
-  tags: number[];
+  notes: NoteListType;
 }
 
-export default async function HomeList({ tags }: HomeListProps) {
-  const noteTags = await db.noteTag.findMany({
-    where: {
-      tagId: {
-        in: tags,
-      },
-    },
-    select: {
-      noteId: true,
-    },
-  });
+export default function HomeList({ notes }: HomeListProps) {
+  const [selected, setSelected] = useState<{ [key: number]: boolean }>({});
 
-  const uniqueNoteIds = [...new Set(noteTags.map((nt) => nt.noteId))];
+  const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const isChecked = e.currentTarget.checked;
+    const obj = {} as { [key: number]: boolean };
+    for (const s in selected) {
+      obj[s] = isChecked;
+    }
+    setSelected(obj);
+  };
 
-  const notes = await db.note.findMany({
-    where: {
-      id: {
-        in: uniqueNoteIds,
-      },
-    },
-    include: {
-      tags: true,
-    },
-  });
-  console.log(notes);
+  const handleSelectItem = (id: number) => {
+    setSelected((i) => ({ ...i, [id]: !selected[id] }));
+  };
 
-  return <div></div>;
+  useEffect(() => {
+    const s = notes.reduce((acc, n) => {
+      acc[n.id] = false;
+      return acc;
+    }, {} as { [key: number]: boolean });
+    setSelected(s);
+  }, [notes]);
+
+  return (
+    <div className="overflow-x-auto pt-6">
+      <table className="table">
+        <thead>
+          <tr>
+            <th>
+              <label>
+                <input
+                  onChange={handleSelectAll}
+                  checked={notes.every((item) => selected[item.id])}
+                  type="checkbox"
+                  className="checkbox"
+                />
+              </label>
+            </th>
+            <th>제목</th>
+            <th>생성 날짜</th>
+            <th>태그</th>
+          </tr>
+        </thead>
+        <tbody>
+          {notes.map((item) => (
+            <tr
+              key={item.id}
+              className={selected[item.id] ? "bg-gray-100" : ""}
+            >
+              <th>
+                <label>
+                  <input
+                    type="checkbox"
+                    className="checkbox"
+                    checked={selected[item.id] ?? false}
+                    onChange={() => handleSelectItem(item.id)}
+                  />
+                </label>
+              </th>
+              <td>{item.title}</td>
+              <td>{formatDate(item.created_at)}</td>
+              <td>
+                {item.noteTags.map((i) => (
+                  <div key={i.tagId}>{i.tag.tagname}</div>
+                ))}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
 }

@@ -1,14 +1,17 @@
 "use client";
 
+import { NoteListType } from "@/app/(tabs)/home/page";
 import { PlusIcon } from "@heroicons/react/16/solid";
 import Link from "next/link";
 import { useState } from "react";
+import HomeList from "./HomeList";
 
 interface HomeContentProps {
   tags: { id: number; tagname: string }[];
+  notes: NoteListType;
 }
 
-export default function HomeContent({ tags }: HomeContentProps) {
+export default function HomeContent({ tags, notes }: HomeContentProps) {
   const [selectedTags, setSelectedTags] = useState(tags.map((t) => t.id));
   const [selectedDateFilter, setSelectedDateFilter] = useState("전체");
   const [isCustomDateOpen, setIsCustomDateOpen] = useState(false);
@@ -111,7 +114,7 @@ export default function HomeContent({ tags }: HomeContentProps) {
           </div>
         )}
       </div>
-      {/* <HomeList tags={selectedTags} /> */}
+      <HomeList notes={notes} />
       <Link
         href="/note/add"
         className="bg-gray-600 flex items-center justify-center rounded-full size-16 fixed bottom-24 right-8 text-white transition-colors hover:bg-gray-400"
